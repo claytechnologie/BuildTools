@@ -1,4 +1,7 @@
 try:
+    
+    #NOTE: Kein create_file() mehr, files sollen automatisch erstellt werden
+    
     import os
     from .statemachine import StateMachine
     state = StateMachine("filewriter")
@@ -7,15 +10,26 @@ try:
 
       # FileWriter für einfache Datei Operationen
 
-        def __init__(self, filepath):
-            self.file = filepath
+        def __init__(self):
+            self.file = None
             self.state = state
-            self.locate_file()
-            if state.check("file_location", "Gefunden"):
+
+
+        def set_file(self, filepath):
+            self.file = filepath
+            
+        def create_file(self, name):
+            self.file = name
+            os.makedirs(os.path.dirname(name), exist_ok=True)
+            
+        
+        def create(self):
+            if os.path.exists(self.file):
                 pass
             else:
-                raise FileNotFoundError("File location could not be found or created.")
-        
+                with open(self.file, 'w') as f:
+                    f.write("")
+
         def locate_file(self):
             self.state.add_state("file_location", "Keine")
             if os.makedirs(os.path.dirname(self.file), exist_ok=True):

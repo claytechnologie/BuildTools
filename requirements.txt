@@ -1,0 +1,15 @@
+# BuildTools Dependencies
+# Core requirements for all functionality
+
+# Rich für Console-Output und Styling
+rich>=10.0.0
+
+# Optional dependencies für erweiterte Features
+# Installiere diese für AI-Funktionalität:
+# openai>=1.0.0
+
+# Development dependencies (optional)
+# pytest>=6.0
+# black
+# flake8
+# mypy

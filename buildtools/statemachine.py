@@ -6,8 +6,8 @@ try:
 
         def __init__(self, name="StateMachine"):
             self.name = name
-            from sqlsave import SqlSave
-            from cons import ConsoleEditor
+            from .sqlsave import SqlSave
+            from .cons import ConsoleEditor
             self.saves = SqlSave(db=name)
             self.cons = ConsoleEditor()
             self.variables = []
@@ -89,6 +89,7 @@ try:
                 self.states = statemachine_instance.states
                 self.index = statemachine_instance.index
             else:
+                # Fallback: Erstelle eigene Instanz (für Kompatibilität)
                 super().__init__()
             
             self.variable = variable

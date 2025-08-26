@@ -41,13 +41,21 @@ try:
 
 
         def listen(self, variable, state, callback):
-            async def listener(variable, state, callback):
+            """Synchrone Listen-Methode ohne asyncio"""
+            import threading
+            import time
+            
+            def listener_thread():
                 while True:
                     if self.check(variable, state):
                         callback()
-                    await asyncio.sleep(0.2)
-
-            asyncio.create_task(listener(variable, state, callback))
+                        break  # Exit after callback is executed
+                    time.sleep(0.2)
+            
+            # Starte Listener in separatem Thread
+            listener = threading.Thread(target=listener_thread, daemon=True)
+            listener.start()
+            return listener
 
         def check(self, variable, state):
             data = self.get_state(variable)
@@ -81,7 +89,6 @@ try:
                 self.states = statemachine_instance.states
                 self.index = statemachine_instance.index
             else:
-                # Fallback: Erstelle eigene Instanz (für Kompatibilität)
                 super().__init__()
             
             self.variable = variable

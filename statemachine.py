@@ -1,5 +1,5 @@
 try:
-    
+    import asyncio
     class StateMachine:
         
       # StateMachine von ClayTechnologies (C) Powerd by SQLSave Module
@@ -39,6 +39,16 @@ try:
                 return True
             return False
 
+
+        def listen(self, variable, state, callback):
+            async def listener(variable, state, callback):
+                while True:
+                    if self.check(variable, state):
+                        callback()
+                    await asyncio.sleep(0.2)
+
+            asyncio.create_task(listener(variable, state, callback))
+
         def check(self, variable, state):
             data = self.get_state(variable)
             if data == state:
@@ -55,7 +65,6 @@ try:
                 import sqlsave
                 sqlsave.SqlSave(self.name)
             
-    import asyncio
 
    # ---------------------------------------------------------
 

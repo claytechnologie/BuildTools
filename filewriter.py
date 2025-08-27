@@ -1,119 +1,215 @@
 try:
-    
-    #NOTE: Kein create_file() mehr, files sollen automatisch erstellt werden
-    
     import os
+    import json
     from .statemachine import StateMachine
-    state = StateMachine("filewriter")
     
     class FileWriter:
-
-      # FileWriter für einfache Datei Operationen
-
-        def __init__(self):
-            self.file = None
-            self.state = state
-
+        def __init__(self, filepath=None):
+            self.file = filepath
+            self.state = StateMachine("filewriter")
 
         def set_file(self, filepath):
             self.file = filepath
             
         def create_file(self, name):
             self.file = name
-            os.makedirs(os.path.dirname(name), exist_ok=True)
-            
+            directory = os.path.dirname(name)
+            if directory:
+                os.makedirs(directory, exist_ok=True)
+            if not os.path.exists(self.file):
+                with open(self.file, 'w') as f:
+                    f.write("")
         
         def create(self):
-            if os.path.exists(self.file):
-                pass
-            else:
+            if not self.file:
+                return
+            if not os.path.exists(self.file):
+                directory = os.path.dirname(self.file)
+                if directory:
+                    os.makedirs(directory, exist_ok=True)
                 with open(self.file, 'w') as f:
                     f.write("")
 
-        def locate_file(self):
-            self.state.add_state("file_location", "Keine")
-            if os.makedirs(os.path.dirname(self.file), exist_ok=True):
-                self.state.update("file_location", "Gefunden")
-            else:
-                self.state.update("file_location", "Nicht Gefunden")
-                
-        def write(self):
+        def write(self, content):
+            if not self.file:
+                return
+            self.create()
+            with open(self.file, 'w') as f:
+                f.write(content)
+        
+        def append(self, content):
+            if not self.file:
+                return
+            self.create()
             with open(self.file, 'a') as f:
-                f.write(self.state.get_state("file_content", ""))
-                self.state.update("file_written", "Ja")
+                f.write(content)
         
         def read(self):
+            if not self.file or not os.path.exists(self.file):
+                return ""
             with open(self.file, 'r') as f:
                 return f.read()
 
-        def locate_line(self, name):
-            target = name
-            with open(self.file, 'r') as f:
-                lines = f.readlines()
-            for i, line in enumerate(lines):
-                if target in line:
-                    return i
-            return -1
-
         def locate(self, name):
-            target = name
+            if not self.file or not os.path.exists(self.file):
+                return -1
             with open(self.file, 'r') as f:
                 lines = f.readlines()
             for i, line in enumerate(lines):
-                if target in line:
+                if name in line:
                     return i
             return -1
 
+        def locate_line(self, name):
+            return self.locate(name)
         
         def read_line(self, line):
+            if not os.path.exists(self.file):
+                return None
             with open(self.file, 'r') as f:
                 lines = f.readlines()
-            return lines[line] if line < len(lines) else None
-
-        def write_line(self, line, content):
-            with open(self.file, 'r') as f:
-                lines = f.readlines()
-            with open(self.file, 'w') as f:
-                for i, l in enumerate(lines):
-                    if i == line:
-                        f.write(content + "\n")
-                    else:
-                        f.write(l)
-
-        def clear(self):
-            os.remove(self.file)
-        
-        def clear_line(self, line):
-            with open(self.file, 'r') as f:
-                lines = f.readlines()
-            with open(self.file, 'w') as f:
-                for i, l in enumerate(lines):
-                    if i != line:
-                        f.write(l)
+            return lines[line].rstrip('\n') if line < len(lines) else None
 
         def get_line(self, line):
+            return self.read_line(line)
+
+        def write_line(self, line, content):
+            if not self.file:
+                return
+            self.create()
+            if os.path.exists(self.file):
+                with open(self.file, 'r') as f:
+                    lines = f.readlines()
+            else:
+                lines = []
+            
+            while len(lines) <= line:
+                lines.append("\n")
+            
+            lines[line] = content + "\n"
+            
+            with open(self.file, 'w') as f:
+                f.writelines(lines)
+
+        def replace_line(self, line, content):
+            self.write_line(line, content)
+
+        def delete_line(self, line):
+            if not os.path.exists(self.file):
+                return
             with open(self.file, 'r') as f:
                 lines = f.readlines()
-            return lines[line] if line < len(lines) else None
+            if line < len(lines):
+                lines.pop(line)
+                with open(self.file, 'w') as f:
+                    f.writelines(lines)
 
-    state.clear()
-    
+        def clear_line(self, line):
+            self.write_line(line, "")
+
+        def clear(self):
+            if os.path.exists(self.file):
+                os.remove(self.file)
+        
+        def delete(self):
+            self.clear()
+
+        def copy_to(self, target):
+            content = self.read()
+            target_writer = FileWriter(target)
+            target_writer.write(content)
+
+        def move_to(self, target):
+            self.copy_to(target)
+            self.delete()
+
+        def get_lines(self):
+            if not os.path.exists(self.file):
+                return []
+            with open(self.file, 'r') as f:
+                return [line.rstrip('\n') for line in f.readlines()]
+
+        def count_lines(self):
+            return len(self.get_lines())
+
+        def exists(self):
+            return os.path.exists(self.file) if self.file else False
+
     class FileEditor(FileWriter):
-
-      # FileEditor für CustomFile Operations
-
-        def __init__(self):
-            super().__init__()
-            import os
-            from ai import AILogic
-            self.AI = AILogic()
-            self.apikey = os.getenv("OpenAI_API")
+        def __init__(self, filepath=None):
+            super().__init__(filepath)
+            try:
+                from .ai import AILogic
+                self.AI = AILogic()
+            except:
+                self.AI = None
 
         def modify(self, target, line=None, content=None):
-           self.AI.operations.file_modify(self.file, target, line, content)
+            if self.AI:
+                return self.AI.operations.file_modify(self.file, target, line, content)
+            return "AI not available"
 
-        def get(self, target):
-            pass
+        def find_and_replace(self, find_text, replace_text):
+            content = self.read()
+            new_content = content.replace(find_text, replace_text)
+            self.write(new_content)
+            return content != new_content
+
+        def insert_at_line(self, line, content):
+            lines = self.get_lines()
+            lines.insert(line, content)
+            self.write('\n'.join(lines))
+
+        def append_line(self, content):
+            self.append('\n' + content)
+
+    class Json(FileWriter):
+        def __init__(self, filepath=None):
+            super().__init__(filepath)
             
-except Exception:
-    print("Critical error occurred, please check your installation and dependencies.")
+        def load_json(self):
+            try:
+                content = self.read()
+                return json.loads(content) if content else {}
+            except:
+                return {}
+                
+        def save_json(self, data):
+            self.write(json.dumps(data, indent=2))
+            
+        def get_key(self, key):
+            data = self.load_json()
+            return data.get(key, None)
+            
+        def set_key(self, key, value):
+            data = self.load_json()
+            data[key] = value
+            self.save_json(data)
+            
+        def delete_key(self, key):
+            data = self.load_json()
+            if key in data:
+                del data[key]
+                self.save_json(data)
+                return True
+            return False
+            
+        def has_key(self, key):
+            data = self.load_json()
+            return key in data
+            
+        def get_all_keys(self):
+            data = self.load_json()
+            return list(data.keys())
+            
+        def update_dict(self, update_data):
+            data = self.load_json()
+            data.update(update_data)
+            self.save_json(data)
+            
+        def merge_json(self, other_json_file):
+            other_data = Json(other_json_file).load_json()
+            self.update_dict(other_data)
+
+except Exception as e:
+    print(f"FileWriter error: {e}")

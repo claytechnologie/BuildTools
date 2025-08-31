@@ -64,3 +64,26 @@ class ConsoleEditor:
     def blue(self, message):
         self.message = message
         self.rich.print(f"[bold blue]{self.message}[/bold blue]")
+        
+    def animations(self):
+        
+        def loading(self, text, time):
+            self.text = text
+            self.time = time
+            # Using Animation bubble with updates
+            time = time * 10
+            for loading in range(time):
+                a = "|"
+                b = "/"
+                c = "-"
+                self.rich.print(f"[bold yellow]{self.text}[/bold yellow] {a}")
+                self.clear()
+                self.rich.print(f"[bold yellow]{self.text}[/bold yellow] {b}")
+                self.clear()
+                self.rich.print(f"[bold yellow]{self.text}[/bold yellow] {c}")
+                self.clear()
+
+    def clear(self):
+        import os
+        # Clear the console
+        os.system("cls" if os.name == "nt" else "clear")
